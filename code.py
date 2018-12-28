@@ -1,74 +1,47 @@
-import string, random, urllib, os, thread, array, sys
+import sys
+import os
+import string
+import random
+import httplib2
+import threading 
 
 
-if len(sys.argv) < 2:
-    sys.exit("\033[37mUsage: python " + sys.argv[0] + " (Number of threads)")
-threadAmount = int(sys.argv[1])
-
-
-temp = 0
-#while temp < 10:
+if len(sys.argv) < 2:sys.exit("\033[37mUsage: python " + sys.argv[0] + " (Number of threads)")
 
 noneWorking = [0, 503, 4939, 4940, 4941, 12003, 5556]
+threadAmount = int(sys.argv[1])
+alph = string.ascii_uppercase + string.digits + string.ascii_lowercase
+diglow = string.digits + string.ascii_lowercase
+
+def createDir():
+	if 'images' not in os.listdir():os.mkdir('images')
+
 
 def scrapePictures():
-	while True:
-	#	N = int(''.join(random.choice('1' + '2') for _ in range(1)))
-		amount = int(''.join(random.choice('5' + '6') for _ in range(1)))
-		if amount == 6:
-	#		N = int(''.join(random.choice('3') for _ in range(1)))
-			N = 3
-			#name = str(len([name for name in os.listdir('.') if os.path.isfile(name)]) - 1)
-			picture = str(''.join(random.choice(string.ascii_uppercase + string.digits + string.lowercase) for _ in range(N)))
-			picture2 = str(''.join(random.choice(string.digits + string.lowercase) for _ in range(N)))
-			# printsc = "http://img.prntscr.com/img?url=http://i.imgur.com/" + "" + str(picture) + str(picture2) + ".jpg"
-				# Trying to improve.
-			name = picture + picture2
-			printsc = "http://i.imgur.com/" + "" + str(picture) + str(picture2) + ".jpg"
-			urllib.urlretrieve(""+ printsc, str(name) + ".jpg")
-			file = os.path.getsize(str(name)+ ".jpg")
-			# print printsc
-				# original print file. Currently in maintance mode.
-			#print str(file) + " file"
-			if file in noneWorking:
-				print "[-] Invalid: " + picture + picture2
-				os.remove(name + ".jpg")
-			else: 
-				print "[+] Valid: " + printsc
-			#temp += 1
-		if amount == 5:
-			N = 5
-	#		N = int(''.join(random.choice('3') for _ in range(1)))
-	#		N2 = int(''.join(random.choice('2') for _ in range(1)))
-			#name = str(len([name for name in os.listdir('.') if os.path.isfile(name)]) - 1)
-			picture = str(''.join(random.choice(string.ascii_uppercase + string.digits + string.lowercase) for _ in range(N)))
-	#		picture2 = str(''.join(random.choice(string.digits + string.lowercase) for _ in range(N2)))
-			# printsc = "http://img.prntscr.com/img?url=http://i.imgur.com/" + "" + str(picture) + ".jpg"
-				# Trying to improve.
-			printsc = "http://i.imgur.com/" + "" + str(picture) + ".jpg"
-	#		printsc = "http://img.prntscr.com/img?url=http://i.imgur.com/" + "" + str(picture) + str(picture2) + ".jpg" #Porsiacaso necesito dividr 3 mixed y luego 2 numeros y minusculas
-			name = picture
-			urllib.urlretrieve(""+ printsc, str(name) + ".jpg")
-			file = os.path.getsize(str(name)+ ".jpg")
-			#print printsc
-			#print str(file) + " file"
-			if file in noneWorking:
-				print "[-] Invalid: " + picture
-				os.remove(name + ".jpg")
-			else: 
-				print "[+] Valid: " + printsc
-			#temp += 1
+	while 1:
+		h = httplib2.Http('.cache')
+		a = random.randint(0,1)
+		if a:
+			part1 = ''.join([random.choice(alph) for _ in range(3)])
+			part2 = ''.join([random.choice(diglow) for _ in range(3)])
+			name = part1 + part2
+		else:name = ''.join([random.choice(alph) for _ in range(5)])
+		url = "http://i.imgur.com/" + name + ".jpg"
+		response, content = h.request(url)
+		if content[0] == 60 or len(content) in noneWorking: continue#Invalid
+		if content[:3] == b'GIF':ex='gif'
+		elif content[1:4] == b'PNG':ex='png'
+		else:ex='jpg'
+		with open('images/{0}.{1}'.format(name,ex), 'wb') as f:
+			f.write(content)
+		print("[+] Valid: {0}".format(url))
 
-tempVar2 = 1
-#threadAmount = sys.argv[2]
-while (tempVar2 <= threadAmount):
-	try:
-		print ("Starting thread #" + str(tempVar2))
-		thread.start_new_thread(scrapePictures, ())
-		tempVar2 += 1
-	except:
-		print "Error initializing thread...."
+def main():
+	createDir()
 
-#Make threads never stop
-while (True):
-	temp = 1+1
+	for i in range(threadAmount):
+		th = threading.Thread(target=scrapePictures,)
+		th.start()
+
+if __name__ == '__main__':
+	main()
